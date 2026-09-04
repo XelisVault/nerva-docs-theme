@@ -2,21 +2,30 @@
 <html lang="en">
     <head>
       <script>
-	// Hack for scrolling window when linking to anchor tag with fixed nav header
-        var shiftWindow = function() { scrollBy(0, -75) };
-        window.addEventListener("hashchange", shiftWindow);
-        function load() { if (window.location.hash) shiftWindow(); }
+        // Dark mode before first paint. An explicit choice stored by the
+        // toggle wins; otherwise the system preference decides. The
+        // background is set here as well so there is no white flash.
+        (function () {
+          var stored;
+          try { stored = localStorage.getItem('nerva-docs-theme'); } catch (e) {}
+          var dark = stored !== null && stored !== undefined
+            ? stored === 'dark'
+            : !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) {
+            document.documentElement.classList.add('dark-mode');
+            document.documentElement.style.backgroundColor = '#1a1d20';
+          }
+        })();
       </script>
-      <script>(function(){var d=localStorage.getItem('nerva-docs-theme')==='dark';if(d)document.documentElement.classList.add('dark-mode');document.documentElement.style.backgroundColor=d?'#1a1d20':'';})();</script>
       {%- block site_meta %}
         <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         {% if page and page.is_homepage %}<meta name="description" content="{{ config['site_description'] }}">{% endif %}
         {% if config.site_author %}<meta name="author" content="{{ config.site_author }}">{% endif %}
         {% if page and page.canonical_url %}<link rel="canonical" href="{{ page.canonical_url }}">{% endif %}
         {% if config.site_favicon %}<link rel="shortcut icon" href="{{ config.site_favicon|url }}">
         {% else %}<link rel="shortcut icon" href="{{ base_url }}/img/favicon.ico">{% endif %}
+        <meta name="theme-color" content="#343a40">
       {%- endblock %}
 
       {%- block htmltitle %}
@@ -25,10 +34,11 @@
 
       {%- block styles %}
         <link href="{{ 'css/bootstrap.min.css'|url }}" rel="stylesheet">
-        <link href="{{ 'css/font-awesome.min.css'|url }}" rel="stylesheet">
         <link href="{{ 'css/base.css'|url }}" rel="stylesheet">
-        {%- if config.theme.highlightjs %}
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/{{ config.theme.hljs_style }}.min.css">
+        {%- set hljs_style = config.theme.get('hljs_style', 'github') %}
+        {%- if config.theme.get('highlightjs', true) %}
+        <link href="{{ ('css/hljs-' ~ hljs_style ~ '.min.css')|url }}" rel="stylesheet">
+        <link href="{{ 'css/hljs-dark.css'|url }}" rel="stylesheet">
         {%- endif %}
         {%- for path in config['extra_css'] %}
         <link href="{{ path|url }}" rel="stylesheet">
@@ -36,34 +46,11 @@
       {%- endblock %}
 
       {%- block libs %}
-        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
-        <!--[if lt IE 9]>
-            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-            <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-        <![endif]-->
-
-        <script src="{{ 'js/jquery.min.js'|url }}" defer></script>
-        <script src="{{ 'js/bootstrap.min.js'|url }}" defer></script>
-        {%- if config.theme.highlightjs %}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
-        {%- for lang in config.theme.hljs_languages %}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/languages/{{lang}}.min.js"></script>
+        {%- if config.theme.get('highlightjs', true) %}
+        <script src="{{ 'js/highlight.min.js'|url }}" defer></script>
+        {%- for lang in config.theme.get('hljs_languages', ['http']) %}
+        <script src="{{ ('js/languages/' ~ lang ~ '.min.js')|url }}" defer></script>
         {%- endfor %}
-        <script>hljs.initHighlightingOnLoad();</script>
-        {%- endif %}
-      {%- endblock %}
-
-      {%- block analytics %}
-        {%- if config.google_analytics %}
-        <script>
-            (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-            })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
-
-            ga('create', '{{ config.google_analytics[0] }}', '{{ config.google_analytics[1] }}');
-            ga('send', 'pageview');
-        </script>
         {%- endif %}
       {%- endblock %}
 
@@ -72,23 +59,26 @@
 
     <body class="{% if page and page.is_homepage %}homepage {% endif %}{%- if page and page.meta.jumbotron -%}has-jumbotron {%- endif -%}">
 
-      <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
-	<div class="container">
-	{%- block site_name %}
-	<a class="navbar-brand" href="{{ nav.homepage.url|url }}"><img src="{{ base_url }}/img/logo.ico" alt="{{ config.site_name }}" width="22" height="22"> {{ config.site_name }}</a>
-	{%- endblock %}
-	<a href="#" class="nav-link theme-toggle-btn d-md-none ml-auto" title="Toggle dark/light mode">
-          <i class="fa fa-moon-o theme-icon"></i>
-        </a>
-	<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExample04" aria-controls="navbarsExample04" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-	</button>
+      <a class="skip-link" href="#content">Skip to content</a>
 
-	<div id="navbarsExample04" class="collapse navbar-collapse">
-	  {%- block site_nav %}
+      <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+        <div class="container">
+        {%- block site_name %}
+        <a class="navbar-brand" href="{{ nav.homepage.url|url }}"><img src="{{ base_url }}/img/logo.ico" alt="" width="22" height="22" class="d-inline-block align-top"> {{ config.site_name }}</a>
+        {%- endblock %}
+        <a href="#" class="nav-link theme-toggle-btn d-md-none ml-auto" role="button" title="Toggle dark/light mode" aria-label="Toggle dark/light mode">
+          <svg class="icon icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/></svg>
+          <svg class="icon icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/></svg>
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExample04" aria-controls="navbarsExample04" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div id="navbarsExample04" class="collapse navbar-collapse">
+          {%- block site_nav %}
           {%- if nav|length>1 %}
           <!-- Main navigation -->
-          <nav class="nav">
+          <nav class="nav" aria-label="Main navigation">
             <ul class="navbar-nav">
               {%- for nav_item in nav %}
               {%- if nav_item.children %}
@@ -102,21 +92,21 @@
               </li>
               {%- else %}
               <li {% if nav_item.active %}class="active"{% endif %}>
-                <a class="nav-link" href="{{ nav_item.url|url }}">{{ nav_item.title }}</a>
+                <a class="nav-link" href="{{ nav_item.url|url }}"{% if nav_item.active %} aria-current="page"{% endif %}>{{ nav_item.title }}</a>
               </li>
               {%- endif %}
               {%- endfor %}
             </ul>
           </nav>
           {%- endif %}
-	  {%- endblock %}
+          {%- endblock %}
 
           <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
             {%- block search_button %}
             {%- if 'search' in config['plugins'] %}
             <li class="nav-item">
-              <a class="nav-link" href="#" data-toggle="modal" data-target="#mkdocs_search_modal">
-		<i class="fa fa-search"></i> Search
+              <a class="nav-link" href="#" data-toggle="modal" data-target="#mkdocs_search_modal" role="button" aria-label="Search the documentation">
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/></svg> Search
               </a>
             </li>
             {%- endif %}
@@ -126,12 +116,12 @@
             {%- if page and (page.next_page or page.previous_page) and (not config.theme.suppress_nextprev) %}
             <li class="nav-item{% if not page.previous_page %} disabled{% endif %}">
               <a class="nav-link" rel="next" {% if page.previous_page %}href="{{ page.previous_page.url|url }}"{% endif %}>
-		<i class="fa fa-arrow-left"></i> Previous
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg> Previous
               </a>
             </li>
             <li class="nav-item{% if not page.next_page %} disabled{% endif %}">
               <a class="nav-link" rel="prev" {% if page.next_page %}href="{{ page.next_page.url|url }}"{% endif %}>
-		Next <i class="fa fa-arrow-right"></i>
+                Next <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8"/></svg>
               </a>
             </li>
             {%- endif %}
@@ -141,42 +131,43 @@
             {%- if page and page.edit_url %}
             <li class="nav-item">
               <a class="nav-link" href="{{ page.edit_url }}">
-		{%- if config.repo_name == 'GitHub' -%}
-		<i class="fa fa-github"></i> Edit on {{ config.repo_name }}
-		{%- elif config.repo_name == 'Bitbucket' -%}
-		<i class="fa fa-bitbucket"></i> Edit on {{ config.repo_name }}
-		{%- elif config.repo_name == 'GitLab' -%}
-		<i class="fa fa-gitlab"></i> Edit on {{ config.repo_name }}
-		{%- else -%}
-		Edit on {{ config.repo_name }}
-		{%- endif -%}
+                {%- if config.repo_name == 'GitHub' -%}
+                <svg class="icon icon-brand" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg> Edit on {{ config.repo_name }}
+                {%- elif config.repo_name == 'Bitbucket' -%}
+                <svg class="icon icon-brand" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M.778 1.213a.768.768 0 0 0-.768.892l3.263 19.81c.084.5.515.868 1.022.872H19.95a.771.771 0 0 0 .77-.646l3.27-20.03a.768.768 0 0 0-.768-.891zM14.52 15.53H9.522L8.17 8.466h7.561z"/></svg> Edit on {{ config.repo_name }}
+                {%- elif config.repo_name == 'GitLab' -%}
+                <svg class="icon icon-brand" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m23.955 13.587-1.342-4.135-2.664-8.189a.455.455 0 0 0-.867 0L16.418 9.45H7.582L4.918 1.263a.455.455 0 0 0-.867 0L1.387 9.452l-.04.121L.045 13.587a.924.924 0 0 0 .331.94l11.26 8.181.111.071a.922.922 0 0 0 1.006 0l.112-.071 11.26-8.182a.924.924 0 0 0 .33-.94"/></svg> Edit on {{ config.repo_name }}
+                {%- else -%}
+                Edit on {{ config.repo_name }}
+                {%- endif -%}
               </a>
             </li>
             {%- elif config.repo_url %}
             <li class="nav-item">
               <a class="nav-link" href="{{ config.repo_url }}">
-		{%- if config.repo_name == 'GitHub' -%}
-		<i class="fa fa-github"></i> {{ config.repo_name }}
-		{%- elif config.repo_name == 'Bitbucket' -%}
-		<i class="fa fa-bitbucket"></i> {{ config.repo_name }}
-		{%- elif config.repo_name == 'GitLab' -%}
-		<i class="fa fa-gitlab"></i> {{ config.repo_name }}
-		{%- else -%}
-		{{ config.repo_name }}
-		{%- endif -%}
+                {%- if config.repo_name == 'GitHub' -%}
+                <svg class="icon icon-brand" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg> {{ config.repo_name }}
+                {%- elif config.repo_name == 'Bitbucket' -%}
+                <svg class="icon icon-brand" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M.778 1.213a.768.768 0 0 0-.768.892l3.263 19.81c.084.5.515.868 1.022.872H19.95a.771.771 0 0 0 .77-.646l3.27-20.03a.768.768 0 0 0-.768-.891zM14.52 15.53H9.522L8.17 8.466h7.561z"/></svg> {{ config.repo_name }}
+                {%- elif config.repo_name == 'GitLab' -%}
+                <svg class="icon icon-brand" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m23.955 13.587-1.342-4.135-2.664-8.189a.455.455 0 0 0-.867 0L16.418 9.45H7.582L4.918 1.263a.455.455 0 0 0-.867 0L1.387 9.452l-.04.121L.045 13.587a.924.924 0 0 0 .331.94l11.26 8.181.111.071a.922.922 0 0 0 1.006 0l.112-.071 11.26-8.182a.924.924 0 0 0 .33-.94"/></svg> {{ config.repo_name }}
+                {%- else -%}
+                {{ config.repo_name }}
+                {%- endif -%}
               </a>
             </li>
             {%- endif %}
             {%- endblock %}
 
             <li class="nav-item">
-              <a class="nav-link theme-toggle-btn" href="#" title="Toggle dark/light mode">
-                <i class="fa fa-moon-o theme-icon"></i>
+              <a class="nav-link theme-toggle-btn" href="#" role="button" title="Toggle dark/light mode" aria-label="Toggle dark/light mode">
+                <svg class="icon icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/></svg>
+                <svg class="icon icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/></svg>
               </a>
             </li>
           </ul>
-	</div>
-	</div>
+        </div>
+        </div>
       </nav>
 
       {%- set main_content %}
@@ -204,19 +195,20 @@
       {%- endblock %}
 
       <footer class="col-md-12">
-	<hr>
-	<div class="container">
-	  {%- block footer %}
-	  {%- if config.copyright %}
-	  <p>{{ config.copyright }}</p>
-	  {%- endif %}
-	  {%- endblock %}
-	</div>
+        <hr>
+        <div class="container">
+          {%- block footer %}
+          {%- if config.copyright %}
+          <p>{{ config.copyright }}</p>
+          {%- endif %}
+          {%- endblock %}
+        </div>
       </footer>
 
       {%- block scripts %}
       <script>
-	var base_url = {{ base_url | tojson }};
+        var base_url = {{ base_url | tojson }};
+        var mkdocs_shortcuts = {{ config.theme.get('shortcuts', { 'help': 191, 'next': 78, 'previous': 80, 'search': 83 })|tojson }};
       </script>
       <script src="{{ 'js/base.js'|url }}" defer></script>
       {%- for path in config['extra_javascript'] %}

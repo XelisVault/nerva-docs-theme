@@ -96,25 +96,80 @@ ul.nav li.main {
 .btn:visited {
     color: white;
 }
+
 /*
-h1[id]:before, h2[id]:before, h3[id]:before, h4[id]:before, h5[id]:before, h6[id]:before {
-    content: "";
-    display: block;
-    margin-top: -75px;
-    height: 75px;
+ * ------------------------------------------------------------------ modern
+ * Icons, dark-mode plumbing, anchor offsets, focus visibility, skip link.
+ */
+
+/* Inline SVG icons replace the Font Awesome font: same visual size as the
+   surrounding text, aligned like a glyph. */
+.icon {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.125em;
+    fill: currentColor;
 }
-div.col-md-9 {
-    padding-bottom: 100px;
+.icon-brand {
+    width: 1.1em;
+    height: 1.1em;
 }
 
-div.source-links {
-    float: right;
+/* The toggle carries both icons; CSS decides which one is visible. */
+.theme-toggle-btn .icon-sun { display: none; }
+html.dark-mode .theme-toggle-btn .icon-sun { display: inline-block; }
+html.dark-mode .theme-toggle-btn .icon-moon { display: none; }
+
+/* Native form controls and scrollbars follow the active theme. */
+html { color-scheme: light; }
+html.dark-mode { color-scheme: dark; }
+
+/* Anchor jumps land below the fixed navbar without a JS scroll hack. */
+html { scroll-padding-top: 82px; }
+:target { scroll-margin-top: 82px; }
+
+/* Skip link: invisible until focused, then the first thing on screen. */
+.skip-link {
+    position: absolute;
+    left: -10000px;
+    top: 0;
+    z-index: 2100;
+    padding: 0.5rem 1rem;
+    background: #f8f9fa;
+    color: #343a40;
+    border: 1px solid #dee2e6;
+    border-radius: 0 0 0.25rem 0;
+}
+html.dark-mode .skip-link {
+    background: #1a2025;
+    color: #d4d7d9;
+    border-color: #2d3538;
+}
+.skip-link:focus {
+    left: 0;
 }
 
-div.col-md-9 img {
-  max-width: 100%;
+/* Keyboard focus stays visible where the browser outline was removed. */
+a:focus-visible,
+button:focus-visible,
+.nav-link:focus-visible,
+.dropdown-item:focus-visible,
+.form-control:focus-visible {
+    outline: 2px solid #80bdff;
+    outline-offset: 1px;
 }
-*/
+html.dark-mode a:focus-visible,
+html.dark-mode button:focus-visible,
+html.dark-mode .nav-link:focus-visible,
+html.dark-mode .dropdown-item:focus-visible,
+html.dark-mode .form-control:focus-visible {
+    outline-color: #55c8e8;
+}
+
+/* A modal opened by base.js blocks the page behind it. */
+body.modal-open {
+    overflow: hidden;
+}
 
 /*
  * Side navigation

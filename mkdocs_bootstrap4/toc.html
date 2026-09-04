@@ -1,7 +1,7 @@
-<div class="navbar-light navbar-expand-md hidden-print sticky-top sticky-offset" role="complementary">
+<div class="navbar-light navbar-expand-md hidden-print sticky-top sticky-offset" role="complementary" aria-label="Table of contents">
     <div class="navbar-header">
-        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
-            <span class="fa fa-angle-down"></span>
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents" aria-controls="toc-collapse" aria-expanded="false">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708"/></svg>
         </button>
     </div>
 
@@ -11,7 +11,7 @@
             <li class="nav-item main"><a class="nav-link" href="{{ toc_item.url }}">{{ toc_item.title }}</a></li>
             {%- for toc_item in toc_item.children %}
                 <li class="nav-item">
-                    <a href="{{ toc_item.url }}" class="nav-link{% if toc_item.active %} active{% endif %}">{{ toc_item.title }}</a>
+                    <a href="{{ toc_item.url }}" class="nav-link{% if toc_item.active %} active{% endif %}"{% if toc_item.active %} aria-current="location"{% endif %}>{{ toc_item.title }}</a>
                 </li>
             {%- endfor %}
         {%- endfor %}

@@ -1,12 +1,13 @@
-<div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="Keyboard Shortcuts Modal" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="mkdocs-keyboard-modal-title" aria-hidden="true">
+    <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title">Keyboard Shortcuts</h4>
-                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <h4 class="modal-title" id="mkdocs-keyboard-modal-title">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
             <div class="modal-body">
               <table class="table">
+                <caption class="sr-only">Available keyboard shortcuts</caption>
                 <thead>
                   <tr>
                     <th style="width: 20%;">Keys</th>
