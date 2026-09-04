@@ -1,23 +1,66 @@
-# MkDocs Bootstrap4 Theme
+# NERVA MkDocs Theme
 
-Some minor customisations and fixes to [byrnereese/mkdocs-bootstrap4](https://github.com/byrnereese/mkdocs-bootstrap4) (unmaintained by developer)
+A Bootstrap 4 theme for [MkDocs](https://www.mkdocs.org/), maintained for
+[docs.nerva.one](https://docs.nerva.one). Some customisations and fixes on
+top of [byrnereese/mkdocs-bootstrap4](https://github.com/byrnereese/mkdocs-bootstrap4)
+(unmaintained upstream).
+
+## What the theme is made of
+
+- **Bootstrap 4.6.2 CSS** for the layout, navbar, modals and typography.
+- **No jQuery, no Popper, no Bootstrap JavaScript.** `js/base.js` is plain
+  DOM code that drives the same class contract the Bootstrap bundle used
+  (`.show`, `.modal-backdrop`, `body.modal-open`, `[data-toggle=...]`), so
+  the CSS and any downstream overrides keep working unchanged.
+- **No icon font.** The handful of icons (moon/sun, search, arrows, brand
+  marks) are inline SVG from [Bootstrap Icons](https://icons.getbootstrap.com/)
+  (MIT) and [Simple Icons](https://simpleicons.org/) (CC0).
+- **highlight.js 11, self-hosted** (`js/highlight.min.js` plus the
+  grammars in `js/languages/`), loaded with `defer`. A scoped dark palette
+  in `css/hljs-dark.css` keeps highlighted code readable in dark mode.
+- **Dark mode** with no flash of the wrong theme: a small inline script
+  decides before first paint from the stored choice (`localStorage`,
+  key `nerva-docs-theme`) or the system preference, and the navbar toggle
+  writes the stored choice.
 
 ## Installation
 
-Copy the mkdocs_bootstrap4 folder and edit your [mkdocs.yml] file:
+Copy the `mkdocs_bootstrap4` folder next to your documentation and point
+`mkdocs.yml` at it:
 
     theme:
         name: null
-        custom_dir: 'mkdocs_bootstrap4'
+        custom_dir: 'nerva-docs-theme/mkdocs_bootstrap4/'
         suppress_nextprev: true
 
-## Config Parameters
+For a docs checkout that expects the theme as a sibling directory, clone
+this repository next to it under `nerva-docs-theme/`.
 
-* `suppress_nextprev` - Toggles the display of the common "Next" and "Prev" page links in the header.
+## Config parameters
 
-Favicon path: `docs/img/favicon.ico`
-Navbar logo path: `docs/img/logo.ico`
+* `suppress_nextprev` — toggles the "Next"/"Prev" page links in the header.
+* `highlightjs` — enable code highlighting (self-hosted build).
+* `hljs_style` — highlight.js style to load from `css/hljs-<style>.min.css`
+  (`github` ships with the theme; drop other styles next to it as needed).
+* `hljs_languages` — extra grammars to load from `js/languages/`.
+* `shortcuts` — key codes for the keyboard shortcuts (`?`, `n`, `p`, `s`).
 
-## Special Features
+## Keyboard shortcuts
 
-This theme makes use of the [git-committers plugin](https://github.com/byrnereese/mkdocs-git-committers-plugin) for MkDocs. Consult that plugin's documentation for proper configuration. 
+The theme binds `?` (shortcuts help), `s` (search), `n` (next page) and
+`p` (previous page). They are ignored while typing in a field.
+
+## Special features
+
+This theme makes use of the
+[git-committers plugin](https://github.com/byrnereese/mkdocs-git-committers-plugin)
+for MkDocs. Consult that plugin's documentation for proper configuration.
+Favicon path: `docs/img/favicon.ico`, navbar logo path: `docs/img/logo.ico`.
+
+## Browser support
+
+Any browser with `defer`, `querySelector`, `closest`, class lists and
+`matchMedia` — in practice everything from 2017 onward. The search
+worker path uses standard Web Workers; on browsers without Worker
+support (vanishingly rare), search falls back to a jQuery call the theme
+no longer ships, so search is unavailable there while reading is not.
