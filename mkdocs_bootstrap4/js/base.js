@@ -23,9 +23,12 @@
 
   var THEME_KEY = 'nerva-docs-theme';
 
+  function storedTheme() {
+    try { return localStorage.getItem(THEME_KEY); } catch (e) { return null; }
+  }
+
   function setTheme(dark) {
     html.classList.toggle('dark-mode', dark);
-    html.style.backgroundColor = dark ? '#1a1d20' : '';
     try { localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light'); } catch (e) { /* private mode */ }
   }
 
@@ -36,18 +39,16 @@
     });
   });
 
-  // Follow the system if the visitor never made an explicit choice. A
-  // stored value was written by the toggle and always wins.
+  // Follow the system only while the visitor has made no explicit choice.
+  // The handler re-reads storage on every system change: once the toggle
+  // has stored a preference, that choice wins and an OS theme switch later
+  // in the same session no longer flips the page back.
   if (window.matchMedia) {
     var mq = window.matchMedia('(prefers-color-scheme: dark)');
-    var storedValue = null;
-    try { storedValue = localStorage.getItem(THEME_KEY); } catch (e) { /* private mode */ }
-    if (storedValue === null && mq.addEventListener) {
+    if (mq.addEventListener) {
       mq.addEventListener('change', function (e) {
-        if (!html.classList.contains('dark-mode') !== !e.matches) {
-          html.classList.toggle('dark-mode', e.matches);
-          html.style.backgroundColor = e.matches ? '#1a1d20' : '';
-        }
+        if (storedTheme() !== null) return;
+        html.classList.toggle('dark-mode', e.matches);
       });
     }
   }
@@ -55,7 +56,8 @@
   // ---------------------------------------------------------------- collapse
 
   // [data-toggle="collapse"] flips .show on its target. The navbar and the
-  // table of contents both use it; aria-expanded mirrors the state.
+  // table of contents both use it; aria-expanded mirrors the state, and the
+  // anchor offset is re-measured because an opened navbar grows taller.
   forEach(document.querySelectorAll('[data-toggle="collapse"]'), function (toggle) {
     on(toggle, 'click', function (e) {
       e.preventDefault();
@@ -63,6 +65,7 @@
       if (!target) return;
       var open = target.classList.toggle('show');
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      syncNavbarOffset();
     });
   });
 
@@ -111,10 +114,34 @@
     );
   }
 
+  // Width of the classic scrollbar, 0 with overlay scrollbars. Locking the
+  // body with overflow:hidden takes it away, which shifts every centered
+  // and fixed element: compensate the same way the Bootstrap JS used to.
+  function scrollbarWidth() {
+    return window.innerWidth - html.clientWidth;
+  }
+
+  function lockScroll() {
+    var w = scrollbarWidth();
+    if (w <= 0) return;
+    document.body.style.paddingRight = (parseFloat(getComputedStyle(document.body).paddingRight) || 0) + w + 'px';
+    forEach(document.querySelectorAll('.fixed-top, .fixed-bottom, .is-fixed, .sticky-top'), function (el) {
+      el.style.paddingRight = (parseFloat(getComputedStyle(el).paddingRight) || 0) + w + 'px';
+    });
+  }
+
+  function unlockScroll() {
+    document.body.style.paddingRight = '';
+    forEach(document.querySelectorAll('.fixed-top, .fixed-bottom, .is-fixed, .sticky-top'), function (el) {
+      el.style.paddingRight = '';
+    });
+  }
+
   function showModal(el) {
     if (openModal) closeModal(openModal);
     lastFocus = document.activeElement;
     openModal = el;
+    lockScroll();
     backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop show';
     document.body.appendChild(backdrop);
@@ -133,6 +160,7 @@
     el.setAttribute('aria-hidden', 'true');
     if (backdrop) { backdrop.remove(); backdrop = null; }
     document.body.classList.remove('modal-open');
+    unlockScroll();
     openModal = null;
     if (lastFocus && lastFocus.focus) lastFocus.focus();
     lastFocus = null;
@@ -197,21 +225,47 @@
       var searchModal = document.getElementById('mkdocs_search_modal');
       if (searchModal) { e.preventDefault(); showModal(searchModal); }
     } else if (key === SHORTCUTS.help) {
-      var helpModal = document.getElementById('mkdocs_keyboard_modal');
-      if (helpModal) { e.preventDefault(); showModal(helpModal); }
+      // Key code 191 is both keys on a US layout: '/' bare and '?' with
+      // Shift. Bare '/' is the conventional focus-search key, so it goes
+      // to the search box; Shift+'/' opens this help.
+      if (e.shiftKey) {
+        var helpModal = document.getElementById('mkdocs_keyboard_modal');
+        if (helpModal) { e.preventDefault(); showModal(helpModal); }
+      } else {
+        var searchModal2 = document.getElementById('mkdocs_search_modal');
+        if (searchModal2) {
+          e.preventDefault();
+          showModal(searchModal2);
+        } else {
+          var query = document.getElementById('mkdocs-search-query');
+          if (query) { e.preventDefault(); query.focus(); }
+        }
+      }
     } else if (key === SHORTCUTS.next) {
       go('next');
     } else if (key === SHORTCUTS.previous) {
-      go('previous');
+      go('prev');
     }
   });
 
+  // rel="next" / rel="prev" are the HTML5 link types on the header links:
+  // keep the lookup and the markup spelled the same way.
   function go(rel) {
     var link = document.querySelector('a[rel="' + rel + '"]');
     if (link && link.getAttribute('href')) window.location = link.getAttribute('href');
   }
 
   // ---------------------------------------------------------------- content
+
+  // Anchor jumps must land below the fixed navbar. The stylesheet carries a
+  // fallback constant; here the real height is measured so the offset does
+  // not drift when the navbar wraps on narrow viewports.
+  function syncNavbarOffset() {
+    var navbar = document.querySelector('.navbar.fixed-top');
+    if (navbar) html.style.setProperty('--navbar-offset', (navbar.offsetHeight + 10) + 'px');
+  }
+  syncNavbarOffset();
+  on(window, 'resize', syncNavbarOffset);
 
   // Contributor avatars: swap the data-src the git-committers plugin
   // leaves behind, so pages render without them and fill in afterwards.

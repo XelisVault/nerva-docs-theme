@@ -124,9 +124,20 @@ html.dark-mode .theme-toggle-btn .icon-moon { display: none; }
 html { color-scheme: light; }
 html.dark-mode { color-scheme: dark; }
 
-/* Anchor jumps land below the fixed navbar without a JS scroll hack. */
-html { scroll-padding-top: 82px; }
-:target { scroll-margin-top: 82px; }
+/* Default dark canvas. The head script and base.js only toggle the class,
+   so the colour lives here and nowhere else; a site stylesheet can still
+   override it (docs.nerva.one does, with the same value). */
+html.dark-mode,
+html.dark-mode body {
+    background-color: #1a1d20;
+    color: #d4d7d9;
+}
+
+/* Anchor jumps land below the fixed navbar without a JS scroll hack. The
+   constant is a fallback: base.js measures the real navbar height and sets
+   --navbar-offset, so a wrapped navbar shifts the offset with it. */
+html { scroll-padding-top: var(--navbar-offset, 82px); }
+:target { scroll-margin-top: var(--navbar-offset, 82px); }
 
 /* Skip link: invisible until focused, then the first thing on screen. */
 .skip-link {
@@ -166,7 +177,8 @@ html.dark-mode .form-control:focus-visible {
     outline-color: #55c8e8;
 }
 
-/* A modal opened by base.js blocks the page behind it. */
+/* A modal opened by base.js blocks the page behind it; base.js compensates
+   the disappearing scrollbar with padding on the body and on fixed bars. */
 body.modal-open {
     overflow: hidden;
 }

@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
+      <meta charset="utf-8">
       <script>
         // Dark mode before first paint. An explicit choice stored by the
-        // toggle wins; otherwise the system preference decides. The
-        // background is set here as well so there is no white flash.
+        // toggle wins; otherwise the system preference decides. Only the
+        // class is set: the dark background itself lives in the stylesheet,
+        // and the sheet in <head> is render-blocking, so the first paint is
+        // already dark. The encoding declaration stays above this script
+        // — the first 1024 bytes of the document are what the browser may
+        // sniff, and a comment line must never push the charset past them.
         (function () {
           var stored;
           try { stored = localStorage.getItem('nerva-docs-theme'); } catch (e) {}
@@ -13,12 +18,10 @@
             : !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
           if (dark) {
             document.documentElement.classList.add('dark-mode');
-            document.documentElement.style.backgroundColor = '#1a1d20';
           }
         })();
       </script>
       {%- block site_meta %}
-        <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         {% if page and page.is_homepage %}<meta name="description" content="{{ config['site_description'] }}">{% endif %}
         {% if config.site_author %}<meta name="author" content="{{ config.site_author }}">{% endif %}
@@ -35,8 +38,8 @@
       {%- block styles %}
         <link href="{{ 'css/bootstrap.min.css'|url }}" rel="stylesheet">
         <link href="{{ 'css/base.css'|url }}" rel="stylesheet">
-        {%- set hljs_style = config.theme.get('hljs_style', 'github') %}
-        {%- if config.theme.get('highlightjs', true) %}
+        {%- set hljs_style = config.theme.hljs_style|default('github') %}
+        {%- if config.theme.highlightjs|default(true) %}
         <link href="{{ ('css/hljs-' ~ hljs_style ~ '.min.css')|url }}" rel="stylesheet">
         <link href="{{ 'css/hljs-dark.css'|url }}" rel="stylesheet">
         {%- endif %}
@@ -46,9 +49,9 @@
       {%- endblock %}
 
       {%- block libs %}
-        {%- if config.theme.get('highlightjs', true) %}
+        {%- if config.theme.highlightjs|default(true) %}
         <script src="{{ 'js/highlight.min.js'|url }}" defer></script>
-        {%- for lang in config.theme.get('hljs_languages', ['http']) %}
+        {%- for lang in config.theme.hljs_languages|default(['http']) %}
         <script src="{{ ('js/languages/' ~ lang ~ '.min.js')|url }}" defer></script>
         {%- endfor %}
         {%- endif %}
@@ -82,9 +85,10 @@
             <ul class="navbar-nav">
               {%- for nav_item in nav %}
               {%- if nav_item.children %}
+              {%- set dropdown_id = 'nav-dropdown-' ~ (nav_item.title|lower|replace(' ', '-')) %}
               <li class="nav-item dropdown{% if nav_item.active %} active{% endif %}">
-                <a href="#" role="button" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="nav-dropdown-{{ nav_item.title }}">{{ nav_item.title }} <b class="caret"></b></a>
-                <div class="dropdown-menu" aria-labelledby="nav-dropdown-{{ nav_item.title }}">
+                <a href="#" role="button" class="nav-link dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="{{ dropdown_id }}">{{ nav_item.title }} <b class="caret"></b></a>
+                <div class="dropdown-menu" aria-labelledby="{{ dropdown_id }}">
                   {%- for nav_item in nav_item.children %}
                   {% include "nav-sub.html" %}
                   {%- endfor %}
@@ -113,14 +117,14 @@
             {%- endblock %}
 
             {%- block next_prev %}
-            {%- if page and (page.next_page or page.previous_page) and (not config.theme.suppress_nextprev) %}
+            {%- if page and (page.next_page or page.previous_page) and (not (config.theme.suppress_nextprev|default(true))) %}
             <li class="nav-item{% if not page.previous_page %} disabled{% endif %}">
-              <a class="nav-link" rel="next" {% if page.previous_page %}href="{{ page.previous_page.url|url }}"{% endif %}>
+              <a class="nav-link" rel="prev" {% if page.previous_page %}href="{{ page.previous_page.url|url }}"{% endif %}>
                 <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/></svg> Previous
               </a>
             </li>
             <li class="nav-item{% if not page.next_page %} disabled{% endif %}">
-              <a class="nav-link" rel="prev" {% if page.next_page %}href="{{ page.next_page.url|url }}"{% endif %}>
+              <a class="nav-link" rel="next" {% if page.next_page %}href="{{ page.next_page.url|url }}"{% endif %}>
                 Next <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8"/></svg>
               </a>
             </li>
@@ -208,7 +212,7 @@
       {%- block scripts %}
       <script>
         var base_url = {{ base_url | tojson }};
-        var mkdocs_shortcuts = {{ config.theme.get('shortcuts', { 'help': 191, 'next': 78, 'previous': 80, 'search': 83 })|tojson }};
+        var mkdocs_shortcuts = {{ config.theme.shortcuts|default({ 'help': 191, 'next': 78, 'previous': 80, 'search': 83 })|tojson }};
       </script>
       <script src="{{ 'js/base.js'|url }}" defer></script>
       {%- for path in config['extra_javascript'] %}
